@@ -1,0 +1,281 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Gestor de certificados</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:#f1f4f8;color:#1c2636}
+  header{position:sticky;top:0;z-index:10;background:#0d1b2e;color:#fff;padding:14px 22px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;box-shadow:0 2px 12px rgba(13,27,46,.3)}
+  header h1{font-size:17px;font-weight:600;letter-spacing:.3px}
+  header .sp{flex:1}
+  .chip{font-size:12.5px;background:#1b2c46;border:1px solid #2c4266;border-radius:20px;padding:4px 12px;color:#bcd}
+  .chip b{color:#fff}
+  button{font:inherit;cursor:pointer;border-radius:9px;border:1px solid #cdd6e3;background:#fff;padding:8px 14px;font-size:14px}
+  button:hover{background:#f3f6fb}
+  .pub{background:#18a45c;border-color:#149152;color:#fff;font-weight:600}
+  .pub:hover{background:#149152}
+  .pub:disabled{opacity:.5;cursor:default}
+  .wrap{max-width:1200px;margin:0 auto;padding:18px 16px 80px}
+  .barra{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+  input[type=search],input[type=text],select{font:inherit;font-size:14px;border:1px solid #cdd6e3;border-radius:9px;padding:8px 11px;background:#fff}
+  input[type=search]{flex:1;min-width:200px}
+  .aviso{background:#fff7e0;border:1px solid #f0d98a;color:#7a5b00;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:13.5px;display:none}
+  .aviso.show{display:block}
+  table{width:100%;border-collapse:collapse;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 2px 12px rgba(28,38,54,.06)}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid #eef1f6;font-size:13.5px;vertical-align:middle}
+  th{background:#f7f9fc;font-size:11.5px;letter-spacing:.5px;color:#7a879c;text-transform:uppercase}
+  tr:last-child td{border-bottom:none}
+  .qr{width:96px;height:96px;border:1px solid #e3e8f0;border-radius:6px;display:block;cursor:zoom-in}
+  .qr:hover{border-color:#1f5fa5}
+  .nom{font-weight:600;color:#15243c}
+  .sub{font-size:12px;color:#8896ab}
+  .est{border-radius:8px;padding:6px 8px;font-size:13px;font-weight:600;border:1px solid}
+  .est-vigente{background:#e8f7ee;border-color:#b5e3c6;color:#116b3d}
+  .est-proceso{background:#fdf6e3;border-color:#f0d98a;color:#8a6300}
+  .est-vencido{background:#fdeaea;border-color:#f2b8b8;color:#a11d1d}
+  .acc{display:flex;gap:6px;flex-wrap:wrap}
+  .acc button{padding:6px 10px;font-size:12.5px}
+  .acc .del{border-color:#f0b8b8;color:#a11d1d}
+  .acc .del:hover{background:#fdeaea}
+  .sindoc{font-size:11.5px;color:#c07a00;background:#fdf6e3;border:1px solid #f0d98a;border-radius:6px;padding:2px 7px}
+  a.ver{color:#1f5fa5;text-decoration:none;font-size:12.5px;padding:6px 8px}
+  .modal{position:fixed;inset:0;background:rgba(13,27,46,.55);display:none;place-items:center;z-index:50;padding:20px}
+  .modal.show{display:grid}
+  .card{background:#fff;border-radius:14px;padding:22px;max-width:460px;width:100%;box-shadow:0 20px 60px rgba(0,0,0,.3)}
+  .card h2{font-size:17px;margin-bottom:14px}
+  .card label{display:block;font-size:12.5px;color:#5f6c81;margin:10px 0 4px}
+  .card input,.card select{width:100%}
+  .card .row{display:flex;gap:10px}
+  .card .row>*{flex:1}
+  .card .foot{margin-top:18px;display:flex;gap:10px;justify-content:flex-end}
+  #log{position:fixed;inset:auto 0 0 0;max-height:45vh;overflow:auto;background:#0b1522;color:#c8d6ea;font-family:ui-monospace,Consolas,monospace;font-size:12.5px;white-space:pre-wrap;padding:14px 18px;display:none;z-index:60;border-top:2px solid #18a45c}
+  #log.show{display:block}
+  #log .x{position:sticky;top:0;float:right;color:#8fa;cursor:pointer}
+  .muted{color:#8896ab;font-size:12.5px}
+</style>
+</head>
+<body>
+<header>
+  <h1>🔒 Gestor de certificados</h1>
+  <span class="chip">Total <b id="cTotal">0</b></span>
+  <span class="chip">Vigentes <b id="cVig">0</b></span>
+  <span class="chip">En proceso <b id="cPro">0</b></span>
+  <span class="chip">Vencidos <b id="cVen">0</b></span>
+  <span class="sp"></span>
+  <button onclick="abrirAgregar()">+ Agregar certificado</button>
+  <button class="pub" id="btnPub" onclick="publicar()">Publicar cambios</button>
+</header>
+
+<div class="wrap">
+  <div class="aviso" id="aviso">Tienes cambios sin publicar. Cuando termines de editar, pulsa <b>Publicar cambios</b> para actualizar el sitio.</div>
+  <div class="barra">
+    <input type="search" id="buscar" placeholder="Buscar por nombre, código, zona, serial..." oninput="pintar()">
+    <select id="filtroEstado" onchange="pintar()">
+      <option value="">Todos los estados</option>
+      <option value="vigente">Vigentes</option>
+      <option value="proceso">En proceso</option>
+      <option value="vencido">Vencidos</option>
+    </select>
+    <span class="muted" id="conteoVista"></span>
+  </div>
+  <table>
+    <thead><tr><th>QR</th><th>Certificado</th><th>Zona / Serial</th><th>Estado</th><th>Págs</th><th>Acciones</th></tr></thead>
+    <tbody id="tbody"></tbody>
+  </table>
+</div>
+
+<!-- modal agregar / reemplazar -->
+<div class="modal" id="modal">
+  <div class="card">
+    <h2 id="mTitulo">Agregar certificado</h2>
+    <div id="mCampos">
+      <label>Nombre del equipo *</label><input type="text" id="fNombre">
+      <div class="row">
+        <div><label>Código interno</label><input type="text" id="fCodigo"></div>
+        <div><label>Serial</label><input type="text" id="fSerial"></div>
+      </div>
+      <div class="row">
+        <div><label>Zona / ubicación</label><input type="text" id="fZona"></div>
+        <div><label>Estado inicial</label>
+          <select id="fEstado"><option value="vigente">Vigente</option><option value="proceso">En proceso</option><option value="vencido">Vencido</option></select>
+        </div>
+      </div>
+    </div>
+    <label>Archivo PDF del certificado *</label><input type="file" id="fPdf" accept="application/pdf">
+    <p class="muted" id="mNota" style="margin-top:10px"></p>
+    <div class="foot">
+      <button onclick="cerrarModal()">Cancelar</button>
+      <button class="pub" id="mGuardar" onclick="guardarModal()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- modal editar datos -->
+<div class="modal" id="modalEdit">
+  <div class="card">
+    <h2>Editar certificado</h2>
+    <label>Nombre del equipo *</label><input type="text" id="eNombre">
+    <div class="row">
+      <div><label>Código interno</label><input type="text" id="eCodigo"></div>
+      <div><label>Serial</label><input type="text" id="eSerial"></div>
+    </div>
+    <label>Zona / ubicación</label><input type="text" id="eZona">
+    <p class="muted" style="margin-top:10px">El QR no cambia — solo se actualizan los datos que se muestran.</p>
+    <div class="foot">
+      <button onclick="cerrarEdit()">Cancelar</button>
+      <button class="pub" onclick="guardarEditar()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- modal QR grande para escanear -->
+<div class="modal" id="modalQR" onclick="if(event.target===this)this.classList.remove('show')">
+  <div class="card" style="max-width:420px;text-align:center">
+    <h2 id="qrNombre" style="font-size:16px">Certificado</h2>
+    <img id="qrImg" style="width:320px;height:320px;max-width:100%;border:1px solid #e3e8f0;border-radius:10px;margin:6px auto 10px;display:block">
+    <p class="muted" style="word-break:break-all" id="qrUrl"></p>
+    <div class="foot" style="justify-content:center">
+      <a id="qrVer" class="pub" href="#" target="_blank" style="text-decoration:none;padding:8px 16px">Abrir certificado ↗</a>
+      <button onclick="document.getElementById('modalQR').classList.remove('show')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<div id="log"><span class="x" onclick="document.getElementById('log').classList.remove('show')">cerrar ✕</span><span id="logTxt"></span></div>
+
+<script>
+let CERTS = [], BASE = '';
+async function cargar(){
+  const r = await fetch('/api/certs'); const d = await r.json();
+  CERTS = d.certs; BASE = d.base_url;
+  document.getElementById('aviso').classList.toggle('show', d.pendiente);
+  const c = {vigente:0,proceso:0,vencido:0};
+  CERTS.forEach(x=>c[x.estado]=(c[x.estado]||0)+1);
+  cTotal.textContent=CERTS.length; cVig.textContent=c.vigente; cPro.textContent=c.proceso; cVen.textContent=c.vencido;
+  pintar();
+}
+function pintar(){
+  const q=buscar.value.toLowerCase().trim(), fe=filtroEstado.value;
+  const rows=CERTS.filter(x=>{
+    if(fe && x.estado!==fe) return false;
+    if(!q) return true;
+    return [x.nombre,x.codigo,x.zona,x.serial,x.marca].join(' ').toLowerCase().includes(q);
+  });
+  document.getElementById('conteoVista').textContent = rows.length+' de '+CERTS.length;
+  tbody.innerHTML = rows.map(x=>{
+    const nuevo = !x.url ? '<span class="sub" style="color:#c07a00">· QR nuevo (por publicar)</span>' : '';
+    const qr = x.url ? `<img class="qr" src="/qr/${x.id}.png" title="Clic para ampliar y escanear" onclick="verQR('${x.id}','${esc(x.nombre).replace(/'/g,'&#39;')}')">` : '<div class="qr" style="display:grid;place-items:center;color:#bbb;font-size:10px">nuevo</div>';
+    const ver = x.url ? `<a class="ver" href="${x.url}" target="_blank">ver ↗</a>` : '';
+    return `<tr>
+      <td>${qr}</td>
+      <td><div class="nom">${esc(x.nombre)}</div><div class="sub">${esc(x.codigo||'')} ${nuevo}</div></td>
+      <td><div>${esc(x.zona||'—')}</div><div class="sub">${esc(x.serial||'')}</div></td>
+      <td><select class="est est-${x.estado}" onchange="cambiarEstado('${x.id}',this.value,this)">
+        ${['vigente','proceso','vencido'].map(e=>`<option value="${e}" ${e===x.estado?'selected':''}>${label(e)}</option>`).join('')}
+      </select></td>
+      <td>${x.pdf ? (x.paginas||'·') : '<span class="sindoc">sin doc.</span>'}</td>
+      <td><div class="acc">
+        <button onclick="abrirEditar('${x.id}')">Editar</button>
+        <button onclick="abrirReemplazar('${x.id}')">${x.pdf?'Reemplazar':'Cargar'} PDF</button>
+        ${x.pdf ? `<button class="del" onclick="borrarPdf('${x.id}')">Borrar PDF</button>` : ''}
+        <button class="del" onclick="eliminarCert('${x.id}')">Eliminar</button>
+        ${ver}
+      </div></td>
+    </tr>`;
+  }).join('');
+}
+function verQR(id,nombre){
+  document.getElementById('qrNombre').textContent=nombre;
+  document.getElementById('qrImg').src='/qr/'+id+'.png';
+  const it=CERTS.find(x=>x.id===id);
+  document.getElementById('qrUrl').textContent=it?it.url:'';
+  document.getElementById('qrVer').href=it?it.url:'#';
+  document.getElementById('modalQR').classList.add('show');
+}
+const label=e=>({vigente:'Vigente',proceso:'En proceso',vencido:'Vencido'}[e]);
+const esc=s=>String(s||'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+let editId=null;
+function abrirEditar(id){
+  editId=id;
+  const it=CERTS.find(x=>x.id===id);
+  eNombre.value=it.nombre||''; eCodigo.value=it.codigo||''; eSerial.value=it.serial||''; eZona.value=it.zona||'';
+  document.getElementById('modalEdit').classList.add('show');
+}
+function cerrarEdit(){ document.getElementById('modalEdit').classList.remove('show'); }
+async function guardarEditar(){
+  if(!eNombre.value.trim()){ alert('El nombre no puede quedar vacío.'); return; }
+  await fetch('/api/edit',{method:'POST',headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({id:editId,nombre:eNombre.value,codigo:eCodigo.value,serial:eSerial.value,zona:eZona.value})});
+  cerrarEdit(); await cargar();
+  document.getElementById('aviso').classList.add('show');
+}
+async function eliminarCert(id){
+  const it=CERTS.find(x=>x.id===id);
+  const impreso=it.url?'\n\n⚠ Si su código QR ya se imprimió, al escanearlo mostrará "certificado no encontrado".':'';
+  if(!confirm('¿ELIMINAR por completo el certificado "'+it.nombre+'"?'+impreso+'\n\nEsta acción quita el certificado del sistema.')) return;
+  await fetch('/api/delete',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+  await cargar();
+  document.getElementById('aviso').classList.add('show');
+}
+async function borrarPdf(id){
+  const it=CERTS.find(x=>x.id===id);
+  if(!confirm('¿Borrar el PDF de "'+it.nombre+'"?\n\nEl QR seguirá funcionando pero mostrará solo el banner "En proceso", sin documento. Podrás cargar un PDF nuevo cuando quieras.')) return;
+  await fetch('/api/remove-pdf',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id})});
+  await cargar();
+  document.getElementById('aviso').classList.add('show');
+}
+async function cambiarEstado(id,estado,sel){
+  sel.className='est est-'+estado;
+  await fetch('/api/status',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,estado})});
+  const it=CERTS.find(x=>x.id===id); if(it) it.estado=estado;
+  document.getElementById('aviso').classList.add('show');
+}
+
+let modo='add', reempId=null;
+function abrirAgregar(){ modo='add'; reempId=null;
+  mTitulo.textContent='Agregar certificado'; document.getElementById('mCampos').style.display='block';
+  mNota.textContent='Se generará un QR NUEVO para imprimir. Los QR existentes no se tocan.';
+  fNombre.value=fCodigo.value=fSerial.value=fZona.value=''; fEstado.value='vigente'; fPdf.value='';
+  modal.classList.add('show');
+}
+function abrirReemplazar(id){ modo='replace'; reempId=id;
+  const it=CERTS.find(x=>x.id===id);
+  mTitulo.textContent='Reemplazar PDF de: '+it.nombre; document.getElementById('mCampos').style.display='none';
+  mNota.textContent='El QR NO cambia — sigue siendo el mismo. Solo cambia el documento que muestra.';
+  fPdf.value=''; modal.classList.add('show');
+}
+function cerrarModal(){ modal.classList.remove('show'); }
+async function guardarModal(){
+  if(!fPdf.files[0]){ alert('Selecciona un archivo PDF.'); return; }
+  const fd=new FormData(); fd.append('pdf',fPdf.files[0]);
+  let url='/api/add';
+  if(modo==='replace'){ url='/api/replace'; fd.append('id',reempId); }
+  else{ if(!fNombre.value.trim()){alert('Escribe el nombre del equipo.');return;}
+    fd.append('nombre',fNombre.value); fd.append('codigo',fCodigo.value); fd.append('serial',fSerial.value);
+    fd.append('zona',fZona.value); fd.append('estado',fEstado.value); }
+  document.getElementById('mGuardar').textContent='Guardando...';
+  await fetch(url,{method:'POST',body:fd});
+  document.getElementById('mGuardar').textContent='Guardar';
+  cerrarModal(); await cargar();
+  document.getElementById('aviso').classList.add('show');
+}
+
+async function publicar(){
+  if(!confirm('Se regenerará el sitio y se subirá a internet. ¿Continuar?')) return;
+  const b=document.getElementById('btnPub'); b.disabled=true; b.textContent='Publicando...';
+  const log=document.getElementById('log'), txt=document.getElementById('logTxt');
+  log.classList.add('show'); txt.textContent='';
+  const r=await fetch('/api/publish');
+  const reader=r.body.getReader(), dec=new TextDecoder();
+  while(true){ const {done,value}=await reader.read(); if(done) break;
+    txt.textContent+=dec.decode(value); log.scrollTop=log.scrollHeight; }
+  b.disabled=false; b.textContent='Publicar cambios';
+  await cargar();
+}
+cargar();
+</script>
+</body>
+</html>

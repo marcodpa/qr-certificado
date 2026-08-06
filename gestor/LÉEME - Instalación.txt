@@ -1,0 +1,98 @@
+====================================================================
+   GESTOR DE CERTIFICADOS  -  Guía de instalación y uso
+====================================================================
+
+QUÉ ES
+------
+Una aplicación que se abre en tu navegador y sirve para administrar los
+certificados con código QR: ver todos, cambiar su estado (vigente / en
+proceso / vencido), reemplazar o borrar el PDF, agregar nuevos, editar
+sus datos, y publicar los cambios al sitio en internet.
+
+Funciona en tu propia computadora. Nadie de afuera puede entrar a ella;
+solo administra el sitio público donde viven los certificados.
+
+
+====================================================================
+   INSTALAR EN UNA COMPUTADORA NUEVA  (se hace una sola vez)
+====================================================================
+
+PASO 1 - Copiar esta carpeta
+   Copia la carpeta "gestor" completa a la computadora nueva
+   (por ejemplo, en el Escritorio o en Documentos). Con un USB sirve.
+
+PASO 2 - Instalar los requisitos
+   Necesitas dos programas gratuitos:
+
+   a) Node.js      ->  https://nodejs.org           (elige la versión "LTS")
+   b) Python       ->  https://www.python.org/downloads
+      *** Al instalar Python, MARCA la casilla "Add Python to PATH" ***
+
+   Después de instalar esos dos, haz doble clic en:
+        1 - Instalar requisitos.bat
+   Ese archivo termina de preparar todo automáticamente.
+   *** Necesita CONEXIÓN A INTERNET *** (descarga los componentes
+   completos). Es normal; solo se hace una vez. Espera a que diga "LISTO".
+   (Si algo falta, te lo dirá en pantalla.)
+
+PASO 3 - Abrir el gestor
+   Haz doble clic en:
+        Gestor de certificados.bat
+   Se abre una ventana negra (déjala abierta) y el gestor en el navegador.
+   Para cerrarlo, cierra la ventana negra.
+
+
+====================================================================
+   CÓMO SE USA
+====================================================================
+
+- Cada fila es un certificado, con su QR y sus botones.
+- Clic en un QR: se agranda para escanearlo desde la pantalla.
+- "Estado": cambia entre Vigente / En proceso / Vencido.
+- "Reemplazar / Cargar PDF": sube un documento (el QR no cambia).
+- "Borrar PDF": deja el QR mostrando solo el banner "En proceso".
+- "Editar": cambia nombre, código, serial o zona.
+- "Eliminar": quita el certificado por completo.
+- "Agregar certificado": crea uno nuevo (genera un QR nuevo para imprimir).
+
+IMPORTANTE:
+- Los cambios NO se publican solos. Cuando termines, pulsa el botón verde
+  "Publicar cambios". Verás el progreso y "LISTO" al terminar (~20-30 seg).
+- Los QR ya impresos NUNCA cambian. Cambiar estado o reemplazar el PDF
+  conserva el mismo QR. Solo "Agregar" crea un QR nuevo.
+
+
+====================================================================
+   IMPORTANTE SOBRE SEGURIDAD  (leer)
+====================================================================
+
+- El archivo "personaltken.txt" contiene la llave de acceso a la cuenta
+  donde se publica el sitio. Quien tenga esta carpeta puede publicar y
+  modificar el sitio. Entrégala solo a personas de confianza y no la subas
+  a internet ni la compartas por correo.
+
+- Si dos computadoras usan el gestor, la que publique de último "manda":
+  sobrescribe lo que haya publicado la otra. Lo más ordenado es que una
+  sola persona a la vez haga cambios y publique.
+
+- Este paquete es "liviano": trae las imágenes ya convertidas de los
+  certificados, pero NO los archivos PDF originales (para pesar menos).
+  Puedes ver, editar, cambiar estados, borrar, agregar y publicar sin
+  problema. Los PDF originales se conservan a salvo en la computadora
+  principal. Solo si se dañara la carpeta "out" habría que regenerarla
+  desde esa computadora principal.
+
+
+====================================================================
+   SI ALGO NO FUNCIONA
+====================================================================
+
+- "Node.js no esta instalado"  -> instala Node.js (Paso 2a) y reintenta.
+- "Python no esta instalado"   -> instala Python marcando "Add to PATH".
+- El navegador no abre solo     -> entra manualmente a:  http://127.0.0.1:4599
+- Publicar falla                -> revisa que haya internet y que el archivo
+                                   personaltken.txt siga en la carpeta.
+- "Cannot find module ..."      -> faltan dependencias (o se copiaron mal).
+   al abrir el gestor              Borra la carpeta "node_modules" si existe y
+                                   vuelve a ejecutar "1 - Instalar requisitos.bat"
+                                   (con internet). Eso las descarga completas.
